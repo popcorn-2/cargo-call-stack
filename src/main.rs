@@ -1231,6 +1231,26 @@ fn run() -> anyhow::Result<i32> {
     Ok(0)
 }
 
+struct Hsv {
+    h: f32,
+    s: f32,
+    v: f32,
+}
+
+impl Hsv {
+    fn to_dot_string(&self) -> String {
+        format!("\"{} {} {}\"", self.h, self.s, self.v)
+    }
+}
+
+fn hsv_heatmap(value: u64, max: u64) -> Hsv {
+    Hsv {
+        h: (0.33 - (((value + 1) as f64).log10() / (max as f64).log10() * 0.33).min(0.33)) as f32,
+        s: 0.4,
+        v: 0.9,
+    }
+}
+
 fn dot(g: Graph<Node, ()>, cycles: &[Vec<NodeIndex>]) -> io::Result<()> {
     let stdout = io::stdout();
     let mut stdout = stdout.lock();
@@ -1257,7 +1277,28 @@ fn dot(g: Graph<Node, ()>, cycles: &[Vec<NodeIndex>]) -> io::Result<()> {
             write!(stdout, " style=dashed")?;
         }
 
-        writeln!(stdout, "]")?;
+        if let Some(max) = node.max {
+            match max {
+                Max::Exact(m) => {
+                    write!(
+                        stdout,
+                        " style=filled, fillcolor={}",
+                        hsv_heatmap(m, 20000).to_dot_string()
+                    )?;
+                }
+                Max::LowerBound(m) => {
+                    write!(
+                        stdout,
+                        " style=filled, fillcolor={}",
+                        hsv_heatmap(m, 20000).to_dot_string()
+                    )?;
+                }
+            }
+        }
+
+        write!(stdout, "]")?;
+
+        writeln!(stdout)?;
     }
 
     for edge in g.raw_edges() {
