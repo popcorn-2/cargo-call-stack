@@ -1264,7 +1264,14 @@ fn dot(g: Graph<Node, ()>, cycles: &[Vec<NodeIndex>]) -> io::Result<()> {
         write!(stdout, "    {} [label=\"", i,)?;
 
         let mut escaper = Escaper::new(&mut stdout);
-        write!(escaper, "{}", rustc_demangle::demangle(&node.name)).ok();
+        write!(
+            escaper,
+            "{}",
+            rustc_demangle::demangle(&node.name)
+                .to_string()
+                .replace("::", "::\\n")
+        )
+        .ok();
         escaper.error?;
 
         if let Some(max) = node.max {
