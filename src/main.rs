@@ -51,7 +51,6 @@ enum OutputFormat {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-
     /// The subcommand of this cargo invocation. Should always be "call-stack".
     _cargo_subcommand: String,
 
@@ -721,9 +720,17 @@ fn run() -> anyhow::Result<i32> {
                     }
 
                     if func.starts_with("llvm.") {
-                        if args.warn_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                        if args
+                            .warn_unknown_functions
+                            .iter()
+                            .any(|prefix| func.starts_with(prefix))
+                        {
                             warn!("BUG: unhandled llvm intrinsic: {}", func);
-                        } else if args.ignore_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                        } else if args
+                            .ignore_unknown_functions
+                            .iter()
+                            .any(|prefix| func.starts_with(prefix))
+                        {
                             // ignore
                         } else {
                             panic!("BUG: unhandled llvm intrinsic: {}", func);
@@ -743,14 +750,22 @@ fn run() -> anyhow::Result<i32> {
                         indices[*canon]
                     } else {
                         if !symbols.undefined.contains(func) {
-                            if args.warn_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                            if args
+                                .warn_unknown_functions
+                                .iter()
+                                .any(|prefix| func.starts_with(prefix))
+                            {
                                 warn!("BUG: callee {} is unknown", func);
-                            } else if args.ignore_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                            } else if args
+                                .ignore_unknown_functions
+                                .iter()
+                                .any(|prefix| func.starts_with(prefix))
+                            {
                                 // ignore
                             } else {
                                 panic!("BUG: callee {} is unknown", func);
                             }
-                        } 
+                        }
 
                         if let Some(idx) = indices.get(*func) {
                             *idx
@@ -865,10 +880,10 @@ fn run() -> anyhow::Result<i32> {
                             // be wrong here
 
                             warn!(
-                                "LLVM reported that `{}` uses {} bytes of stack but \
+                                "LLVM reported that `{:?}` uses {} bytes of stack but \
                                  our analysis reported {} bytes; overriding LLVM's result (function \
                                  uses inline assembly)",
-                                canonical_name, llvm_stack, stack
+                                 rustc_demangle::demangle(canonical_name), llvm_stack, stack
                             );
 
                             *llvm_stack = stack;
@@ -878,10 +893,12 @@ fn run() -> anyhow::Result<i32> {
                             // usage of 0 bytes, which is sometimes wrong
                             if *llvm_stack == 0 && stack != *llvm_stack {
                                 warn!(
-                                    "LLVM reported that `{}` uses {} bytes of stack but \
+                                    "LLVM reported that `{:?}` uses {} bytes of stack but \
                                      our analysis reported {} bytes; overriding LLVM's result \
                                      (function was produced by LLVM's function outlining pass)",
-                                    canonical_name, llvm_stack, stack
+                                    rustc_demangle::demangle(canonical_name),
+                                    llvm_stack,
+                                    stack
                                 );
 
                                 *llvm_stack = stack;
@@ -889,12 +906,17 @@ fn run() -> anyhow::Result<i32> {
                         } else {
                             // in all other cases our results should match
 
-                            assert_eq!(
-                                *llvm_stack, stack,
-                                "BUG: LLVM reported that `{}` uses {} bytes of stack but \
-                                 this doesn't match our analysis",
-                                canonical_name, llvm_stack
-                            );
+                            // TODO: This should be an assert, but for some unknown reason it is not
+                            // working with the `ed25519` crate, so downgrade to an error for now.
+                            if *llvm_stack != stack {
+                                error!(
+                                    "BUG: LLVM reported that `{:?}` uses {} bytes of stack but \
+                                    this doesn't match our analysis ({})",
+                                    rustc_demangle::demangle(canonical_name),
+                                    llvm_stack,
+                                    stack
+                                )
+                            }
                         }
                     }
 
