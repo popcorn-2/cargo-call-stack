@@ -87,6 +87,19 @@ struct Args {
     #[arg(long)]
     build_std: Option<String>,
 
+    /// A comma-separated list of function prefixes, including LLVM intrinsics,
+    /// to ignore. Unknown functions matching this list will be ignored,
+    /// assuming zero stack usage.
+    #[arg(long, value_delimiter = ',')]
+    ignore_unknown_functions: Vec<String>,
+
+    /// A comma-separated list of function prefixes, including LLVM intrinsics,
+    /// to warn, instead of failing. Unknown functions matching this list will
+    /// be ignored, assuming zero stack usage, and a warning message will be
+    /// printed to stdout instead.
+    #[arg(long, value_delimiter = ',')]
+    warn_unknown_functions: Vec<String>,
+
     /// consider only the call graph that starts from this node
     start: Option<String>,
 }
@@ -707,11 +720,15 @@ fn run() -> anyhow::Result<i32> {
                         continue;
                     }
 
-                    assert!(
-                        !func.starts_with("llvm."),
-                        "BUG: unhandled llvm intrinsic: {}",
-                        func
-                    );
+                    if func.starts_with("llvm.") {
+                        if args.warn_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                            warn!("BUG: unhandled llvm intrinsic: {}", func);
+                        } else if args.ignore_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                            // ignore
+                        } else {
+                            panic!("BUG: unhandled llvm intrinsic: {}", func);
+                        }
+                    }
 
                     // some intrinsics can be directly lowered to machine code
                     // if the intrinsic has no corresponding node (symbol in the output ELF) assume
@@ -725,11 +742,15 @@ fn run() -> anyhow::Result<i32> {
                     let callee = if let Some(canon) = aliases.get(func) {
                         indices[*canon]
                     } else {
-                        assert!(
-                            symbols.undefined.contains(func),
-                            "BUG: callee `{}` is unknown",
-                            func
-                        );
+                        if !symbols.undefined.contains(func) {
+                            if args.warn_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                                warn!("BUG: callee {} is unknown", func);
+                            } else if args.ignore_unknown_functions.iter().any(|prefix| func.starts_with(prefix)) {
+                                // ignore
+                            } else {
+                                panic!("BUG: callee {} is unknown", func);
+                            }
+                        } 
 
                         if let Some(idx) = indices.get(*func) {
                             *idx
