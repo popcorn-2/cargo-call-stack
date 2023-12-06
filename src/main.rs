@@ -388,11 +388,16 @@ fn run() -> anyhow::Result<i32> {
         {
             buf.clear();
             entry.read_to_end(&mut buf)?;
-            stack_sizes.extend(
-                stack_sizes::analyze_object(&buf)?
-                    .into_iter()
-                    .map(|(name, stack)| (name.to_owned(), stack)),
-            );
+            match stack_sizes::analyze_object(&buf) {
+                Ok(analyze_result) => {
+                    stack_sizes.extend(
+                        analyze_result
+                            .into_iter()
+                            .map(|(name, stack)| (name.to_owned(), stack)),
+                    );
+                }
+                Err(e) => error!("Unable to read compiler_builtins object: {e}"),
+            }
         }
     }
 
