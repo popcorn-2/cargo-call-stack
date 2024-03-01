@@ -74,6 +74,10 @@ struct Args {
     #[arg(long)]
     all_features: bool,
 
+    /// Linker argument (can be specified multiple times)
+    #[arg(long, value_name = "RUSTC_ARG")]
+    rustc_arg: Vec<String>,
+
     /// Use verbose output
     #[arg(short, long)]
     verbose: bool,
@@ -206,6 +210,10 @@ fn run() -> anyhow::Result<i32> {
         "-C",
         "lto=fat",
     ]);
+
+    for args in &args.rustc_arg {
+        cargo.arg(arg);
+    }
 
     cargo.env("CARGO_CALL_STACK_RUSTC_WRAPPER", "1");
     cargo.env("RUSTC_WRAPPER", env::current_exe()?);
