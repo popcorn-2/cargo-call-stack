@@ -199,7 +199,7 @@ fn run() -> anyhow::Result<i32> {
     let build_std = if let Some(std_components) = args.build_std {
         let features = if let Some(std_features) = args.build_std_features {
             format!(" -Zbuild-std-features={std_features}")
-        } else { String::from("") }
+        } else { String::from("") };
         format!("-Zbuild-std={std_components}{features}")
     } else {
         String::from("-Zbuild-std")
