@@ -197,16 +197,20 @@ fn run() -> anyhow::Result<i32> {
     }
 
     let build_std = if let Some(std_components) = args.build_std {
-        let features = if let Some(std_features) = args.build_std_features {
-            format!(" -Zbuild-std-features={std_features}")
-        } else { String::from("") };
-        format!("-Zbuild-std={std_components}{features}")
+        format!("-Zbuild-std={std_components}")
     } else {
         String::from("-Zbuild-std")
     };
 
+    let build_std_features = if let Some(std_features) = args.build_std_features {
+        format!("-Zbuild-std-features={std_features}")
+    } else {
+        String::from("")
+    };
+
     cargo.args(&[
         &build_std,
+        &build_std_features,
         "--color=always",
         "--",
         // .ll file
