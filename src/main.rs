@@ -283,10 +283,11 @@ fn run() -> anyhow::Result<i32> {
     let compiler_builtins_ll_path =
         compiler_builtins_ll_path.expect("`compiler_builtins` LLVM IR unavailable");
 
+    let target_name = target_flag.map(|s| s.strip_suffix(".json").or(s));
     let mut path: PathBuf = if args.example.is_some() {
-        project.path(Artifact::Example(file), profile, target_flag, &host)?
+        project.path(Artifact::Example(file), profile, target_name, &host)?
     } else {
-        project.path(Artifact::Bin(file), profile, target_flag, &host)?
+        project.path(Artifact::Bin(file), profile, target_name, &host)?
     };
 
     let elf = fs::read(&path)
