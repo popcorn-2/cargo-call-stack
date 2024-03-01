@@ -211,7 +211,7 @@ fn run() -> anyhow::Result<i32> {
         "lto=fat",
     ]);
 
-    for args in &args.rustc_arg {
+    for arg in &args.rustc_arg {
         cargo.arg(arg);
     }
 
