@@ -90,6 +90,10 @@ struct Args {
     #[arg(long)]
     build_std: Option<String>,
 
+    /// Argument forwarded to cargo as `-Zbuild-std-features=?`
+    #[arg(long)]
+    build_std_features: Option<String>,
+
     /// A comma-separated list of function prefixes, including LLVM intrinsics,
     /// to ignore. Unknown functions matching this list will be ignored,
     /// assuming zero stack usage.
@@ -193,7 +197,10 @@ fn run() -> anyhow::Result<i32> {
     }
 
     let build_std = if let Some(std_components) = args.build_std {
-        format!("-Zbuild-std={std_components}")
+        let features = if let Some(std_features) = args.build_std_features {
+            format!(" -Zbuild-std-features={std_features}")
+        } else { String::from("") }
+        format!("-Zbuild-std={std_components}{features}")
     } else {
         String::from("-Zbuild-std")
     };
