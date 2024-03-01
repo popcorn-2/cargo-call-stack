@@ -109,6 +109,9 @@ struct Args {
 
     /// consider only the call graph that starts from this node
     start: Option<String>,
+
+    #[clap(long, action)]
+    release: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -133,7 +136,7 @@ fn run() -> anyhow::Result<i32> {
     Builder::from_env(Env::default().default_filter_or("warn")).init();
 
     let args = Args::parse();
-    let profile = Profile::Release;
+    let profile = if args.release { Profile::Release } else { Profile::Dev };
 
     let file = match (&args.example, &args.bin) {
         (Some(f), None) => f,
@@ -283,7 +286,7 @@ fn run() -> anyhow::Result<i32> {
     let compiler_builtins_ll_path =
         compiler_builtins_ll_path.expect("`compiler_builtins` LLVM IR unavailable");
 
-    let target_name = target_flag.map(|s| s.strip_suffix(".json").or(s));
+    let target_name = target_flag.map(|s| s.strip_suffix(".json").unwrap_or(s));
     let mut path: PathBuf = if args.example.is_some() {
         project.path(Artifact::Example(file), profile, target_name, &host)?
     } else {
